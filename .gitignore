@@ -1,0 +1,8 @@
+node_modules
+.dist
+.env
+.env.local
+dist
+.vscode
+springboot-backend/target
+springboot-backend/.idea
