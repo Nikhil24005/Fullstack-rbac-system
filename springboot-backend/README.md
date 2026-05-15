@@ -1,54 +1,101 @@
-# Auth API
+# Auth API (springboot-backend)
 
-Production-style Spring Boot 3 backend using Java 25 and Maven.
+Lightweight Spring Boot 3 backend that provides JWT-based authentication, role-based access control (RBAC), and example protected endpoints used by the frontend.
 
-## Stack
-- Spring Boot 3
+## Tech stack
+- Spring Boot 3.3.x
 - Spring Security
-- JWT with `io.jsonwebtoken`
-- Spring Data JPA
+- JWT (jjwt)
+- Spring Data JPA (Hibernate)
 - MySQL
-- Swagger/OpenAPI
 - MapStruct
-- Bean Validation
+- SpringDoc OpenAPI (Swagger UI)
 
-## Run
-1. Create a MySQL database named `auth_api`.
-2. Update `src/main/resources/application.properties` with your database credentials.
-3. Run the app with Maven:
+## Prerequisites
+- Java 17 (matching `pom.xml`)
+- Maven 3.6+
+- MySQL (or compatible RDBMS)
+
+## Quick setup
+
+1. Clone the repo and open the backend folder:
+
+   ```bash
+   git clone <repo-url>
+   cd springboot-backend
+   ```
+
+2. Create a MySQL database (default name used in `application.properties`):
+
+   ```sql
+   CREATE DATABASE rbac_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   ```
+
+3. Configure database credentials and JWT secret in `src/main/resources/application.properties` or via environment variables. Default keys in the project:
+
+- `spring.datasource.url` (e.g. `jdbc:mysql://localhost:3306/rbac_system`)
+- `spring.datasource.username`
+- `spring.datasource.password`
+- `app.jwt.secret` (change for production)
+- `app.jwt.expiration-ms` (token lifetime in ms)
+
+You can override any value with environment variables (example names): `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `APP_JWT_SECRET`, `APP_JWT_EXPIRATION_MS`.
+
+4. Run the application in development:
+
    ```bash
    mvn spring-boot:run
    ```
 
-## API Endpoints
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/public`
-- `GET /api/user`
-- `GET /api/admin`
+   By default the app starts on port `8080`.
 
-## Major Classes
-- `AuthApiApplication` starts the Spring Boot application.
-- `User` stores the database user record with name, email, password, and role.
-- `Role` defines the `USER` and `ADMIN` roles.
-- `RegisterRequestDto`, `LoginRequestDto`, `AuthResponseDto`, `UserResponseDto` keep request/response contracts separate from entities.
-- `UserMapper` converts between entity and DTO objects using MapStruct.
-- `UserRepository` handles persistence and email lookups.
-- `AuthServiceImpl` handles registration and login, password hashing, and JWT creation.
-- `JwtService` generates tokens, extracts usernames, validates signatures, and checks expiration.
-- `JwtAuthenticationFilter` reads the bearer token from each request and restores the authenticated user.
-- `SecurityConfig` configures stateless authentication, RBAC, password encoding, and filter-chain rules.
-- `AuthController` exposes authentication endpoints.
-- `SampleController` exposes public, user, and admin-only endpoints.
-- `GlobalExceptionHandler` formats validation and API errors into consistent JSON responses.
-- `OpenApiConfig` configures Swagger UI and bearer authentication metadata.
+5. Build a runnable JAR:
 
-## Access Rules
-- `/api/public` is open to everyone.
-- `/api/user` is available to `USER` and `ADMIN`.
-- `/api/admin` is available only to `ADMIN`.
+   ```bash
+   mvn clean package -DskipTests
+   java -jar target/auth-api-0.0.1-SNAPSHOT.jar
+   ```
 
-## Notes
-- JWTs are stateless and expire based on `app.jwt.expiration-ms`.
-- Passwords are hashed with `BCryptPasswordEncoder` before storage.
-- Swagger UI is available at `/swagger-ui.html`.
+## API overview
+
+- `POST /api/auth/register` — register a new user (body: `RegisterRequestDto`).
+- `POST /api/auth/login` — login and receive a JWT (body: `LoginRequestDto`).
+- `GET /api/public` — open endpoint.
+- `GET /api/user` — requires `USER` or `ADMIN` role.
+- `GET /api/admin` — requires `ADMIN` role.
+
+Use the returned `Authorization: Bearer <token>` header for protected requests.
+
+Example curl (login):
+
+```bash
+curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"password"}'
+```
+
+## Swagger / OpenAPI
+
+Swagger UI is available when the app is running at `/swagger-ui.html` (or `/swagger-ui/index.html`).
+
+## Development notes
+
+- The project uses MapStruct for DTO mapping; annotation processors are configured in `pom.xml`.
+- Passwords are hashed with `BCryptPasswordEncoder`.
+- JWT configuration is read from `app.jwt.secret` and `app.jwt.expiration-ms`.
+- `spring.jpa.hibernate.ddl-auto=update` is convenient for dev but consider `validate` or managed migrations for production.
+
+## Troubleshooting
+
+- If the application fails to connect to the DB, verify `spring.datasource.*` settings and that MySQL is listening on the configured host/port.
+- If you see JWT signature/validation errors, confirm `app.jwt.secret` matches between token issuer and verifier.
+- To see SQL and Hibernate logs, `spring.jpa.show-sql=true` is already enabled in `application.properties`.
+
+## Next steps (suggested)
+
+- Add a `.env` or `application-dev.properties` to keep local secrets out of source control.
+- Add Dockerfile and docker-compose for easy local setup (DB + app).
+
+---
+
+If you want, I can also add a simple `docker-compose.yml` and a small run script. Want me to do that?
